@@ -1,6 +1,5 @@
 @import "tailwindcss";
-
-@config "../../tailwind.config.ts";
+@config "../../tailwind.config.js";
 
 /* Font handled by next/font/google in layout.tsx */
 

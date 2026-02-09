@@ -3,11 +3,15 @@ import { ShieldCheck, Zap, CircleDollarSign, ArrowRight } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
 import PropertyCard from "@/components/housing/PropertyCard";
-import { mockProperties } from "@/lib/mockData";
+import { getProperties } from "@/app/actions/property-actions";
 
-export default function Home() {
+export default async function Home() {
+  // Get properties from database
+  const result = await getProperties();
+  const properties = (result.success && result.data) ? (result.data as any[]) : [];
+
   // Get first 3 properties for featured section
-  const featuredProperties = mockProperties.slice(0, 3);
+  const featuredProperties = properties.slice(0, 3);
 
   return (
     <div className="flex flex-col min-h-screen bg-white">

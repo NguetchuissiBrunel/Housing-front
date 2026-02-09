@@ -1,0 +1,115 @@
+// This is your Prisma schema file
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  STUDENT
+  LANDLORD
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  role          UserRole  @default(STUDENT)
+  avatar        String?
+  phone         String?
+  verified      Boolean   @default(false)
+  properties    Property[]
+  bookings      Booking[]
+  reviews       Review[]
+  sentMessages  Message[] @relation("SentMessages")
+  conversationsAsStudent Conversation[] @relation("StudentConversations")
+  conversationsAsLandlord Conversation[] @relation("LandlordConversations")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Property {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  price       Float
+  address     String
+  city        String
+  images      String[]
+  features    String[]
+  bedrooms    Int      @default(1)
+  bathrooms   Int      @default(1)
+  area        Float    @default(25)
+  available   Boolean  @default(true)
+  rating      Float    @default(0)
+  reviewCount Int      @default(0)
+  owner       User     @relation(fields: [ownerId], references: [id])
+  ownerId     String
+  bookings    Booking[]
+  reviews     Review[]
+  conversations Conversation[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  property    Property      @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  user        User          @relation(fields: [userId], references: [id])
+  userId      String
+  startDate   DateTime
+  endDate     DateTime
+  totalPrice  Float
+  status      BookingStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  property    Property @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  rating      Int
+  comment     String
+  createdAt   DateTime @default(now())
+}
+
+model Conversation {
+  id            String    @id @default(cuid())
+  property      Property  @relation(fields: [propertyId], references: [id])
+  propertyId    String
+  student       User      @relation("StudentConversations", fields: [studentId], references: [id])
+  studentId     String
+  landlord      User      @relation("LandlordConversations", fields: [landlordId], references: [id])
+  landlordId    String
+  messages      Message[]
+  lastMessage   String?
+  lastMessageTime DateTime @default(now())
+  createdAt     DateTime  @default(now())
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  conversationId String
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+  senderId       String
+  content        String
+  read           Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+}

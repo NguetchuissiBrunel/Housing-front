@@ -1,8 +1,12 @@
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import SearchContent from "@/components/search/SearchContent";
+import { getProperties } from "@/app/actions/property-actions";
 
-export default function SearchPage() {
+export default async function SearchPage() {
+    const result = await getProperties();
+    const properties = (result.success && result.data) ? result.data : [];
+
     return (
         <div className="min-h-screen pt-20 bg-white">
             <Suspense fallback={
@@ -10,7 +14,7 @@ export default function SearchPage() {
                     <Loader2 className="w-10 h-10 animate-spin text-brand-primary/50" />
                 </div>
             }>
-                <SearchContent />
+                <SearchContent initialProperties={properties} />
             </Suspense>
         </div>
     );

@@ -1,48 +1,34 @@
-"use client";
+"use server";
 
-import { useState } from "react";
 import {
     MapPin, Bed, Bath, Maximize, Share2, Heart, ArrowLeft,
     CheckCircle2, UserCircle2, MessageSquare, Phone,
-    Info, Star, Home, Calendar
+    Info, Star
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { getPropertyById, getReviewsByPropertyId, getUserById, mockReviews } from "@/lib/mockData";
+import { getPropertyById } from "@/app/actions/property-actions";
 import { formatPrice, formatDate } from "@/lib/utils";
+import { notFound } from "next/navigation";
+import ImageGallery from "./ImageGallery";
 
-export default function HousingDetailPage() {
-    const params = useParams();
-    const id = params.id as string;
+interface PageProps {
+    params: { id: string };
+}
 
-    const property = getPropertyById(id);
-    const [activeImage, setActiveImage] = useState(0);
+export default async function HousingDetailPage({ params }: PageProps) {
+    const { id } = params;
+
+    const result = await getPropertyById(id);
+    const property = result.success ? result.data : null;
 
     if (!property) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center gap-8 bg-slate-50 p-6 text-center pt-32">
-                <div className="w-32 h-32 bg-white rounded-[40px] shadow-xl flex items-center justify-center text-slate-200">
-                    <Info className="w-16 h-16" />
-                </div>
-                <div className="space-y-4">
-                    <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Logement introuvable</h1>
-                    <p className="text-slate-500 font-medium max-w-sm mx-auto text-lg">
-                        Il semblerait que ce logement n'existe plus ou ait été retiré.
-                    </p>
-                </div>
-                <Link href="/search">
-                    <Button variant="primary" className="rounded-2xl px-12 py-4 font-bold">
-                        Retour aux offres
-                    </Button>
-                </Link>
-            </div>
-        );
+        notFound();
     }
 
-    const owner = getUserById(property.ownerId);
-    const reviews = getReviewsByPropertyId(property.id);
+    const owner = property.owner;
+    const reviews = (property as any).reviews || [];
 
     return (
         <div className="min-h-screen pt-32 pb-20 bg-white">
@@ -66,38 +52,8 @@ export default function HousingDetailPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                     {/* Main Content */}
                     <div className="lg:col-span-8 space-y-12">
-                        {/* Image Gallery */}
-                        <div className="space-y-6">
-                            <div className="aspect-[16/9] w-full rounded-[40px] overflow-hidden bg-slate-100 shadow-2xl relative group">
-                                <img
-                                    src={property.images[activeImage]}
-                                    alt={property.title}
-                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                />
-                                <div className="absolute top-6 left-6 flex gap-3">
-                                    <Badge variant="success" className="text-xs px-4 py-2 shadow-lg">
-                                        VÉRIFIÉ
-                                    </Badge>
-                                    <Badge variant="primary" className="text-xs px-4 py-2 shadow-lg">
-                                        DISPONIBLE
-                                    </Badge>
-                                </div>
-                            </div>
-                            {property.images.length > 1 && (
-                                <div className="grid grid-cols-4 gap-4">
-                                    {property.images.map((img, idx) => (
-                                        <button
-                                            key={idx}
-                                            onClick={() => setActiveImage(idx)}
-                                            className={`aspect-video rounded-2xl overflow-hidden border-4 transition-all duration-300 hover:scale-105 ${activeImage === idx ? "border-brand-primary shadow-xl" : "border-transparent opacity-60 hover:opacity-100"
-                                                }`}
-                                        >
-                                            <img src={img} alt={`${property.title} ${idx + 1}`} className="w-full h-full object-cover" />
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        {/* Image Gallery (Client Component) */}
+                        <ImageGallery images={property.images} title={property.title} />
 
                         {/* Property Info */}
                         <div className="space-y-8">
@@ -166,33 +122,30 @@ export default function HousingDetailPage() {
                                 <div className="pt-8 border-t border-slate-200 space-y-6">
                                     <h2 className="text-2xl font-bold text-slate-900">Avis des locataires</h2>
                                     <div className="space-y-4">
-                                        {reviews.map((review) => {
-                                            const reviewer = getUserById(review.userId);
-                                            return (
-                                                <div key={review.id} className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                                                    <div className="flex items-start justify-between mb-3">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-12 h-12 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary font-bold">
-                                                                {reviewer?.name.charAt(0) || 'U'}
-                                                            </div>
-                                                            <div>
-                                                                <div className="font-bold text-slate-900">{reviewer?.name || 'Utilisateur'}</div>
-                                                                <div className="text-xs text-slate-400">{formatDate(review.createdAt)}</div>
-                                                            </div>
+                                        {reviews.map((review: any) => (
+                                            <div key={review.id} className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-12 h-12 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary font-bold">
+                                                            {review.user?.name?.charAt(0) || 'U'}
                                                         </div>
-                                                        <div className="flex items-center gap-1">
-                                                            {[...Array(5)].map((_, i) => (
-                                                                <Star
-                                                                    key={i}
-                                                                    className={`w-4 h-4 ${i < review.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`}
-                                                                />
-                                                            ))}
+                                                        <div>
+                                                            <div className="font-bold text-slate-900">{review.user?.name || 'Utilisateur'}</div>
+                                                            <div className="text-xs text-slate-400">{formatDate(review.createdAt)}</div>
                                                         </div>
                                                     </div>
-                                                    <p className="text-slate-600 leading-relaxed">{review.comment}</p>
+                                                    <div className="flex items-center gap-1">
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <Star
+                                                                key={i}
+                                                                className={`w-4 h-4 ${i < review.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`}
+                                                            />
+                                                        ))}
+                                                    </div>
                                                 </div>
-                                            );
-                                        })}
+                                                <p className="text-slate-600 leading-relaxed">{review.comment}</p>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )}

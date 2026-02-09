@@ -5,7 +5,7 @@ import { Star, MapPin, Bed, Bath, Maximize } from "lucide-react";
 import { Card, CardImage, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
-import { Property } from "@/lib/mockData";
+import { Property } from "@prisma/client";
 import { formatPrice } from "@/lib/utils";
 
 interface PropertyCardProps {

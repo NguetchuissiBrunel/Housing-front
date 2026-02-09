@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { MapPin, Check, Building2, Bed, Bath, Maximize } from "lucide-react";
+import { Building2 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import PropertyCard from "@/components/housing/PropertyCard";
-import { mockProperties, Property } from "@/lib/mockData";
+import { Property } from "@prisma/client";
 
-export default function SearchContent() {
+interface SearchContentProps {
+    initialProperties: Property[];
+}
+
+export default function SearchContent({ initialProperties }: SearchContentProps) {
     const searchParams = useSearchParams();
     const cityFromQuery = searchParams.get('city') || "";
 
@@ -19,10 +23,10 @@ export default function SearchContent() {
         bedrooms: undefined as number | undefined,
     });
 
-    const [filteredProperties, setFilteredProperties] = useState<Property[]>(mockProperties);
+    const [filteredProperties, setFilteredProperties] = useState<Property[]>(initialProperties);
 
     useEffect(() => {
-        let results = [...mockProperties];
+        let results = [...initialProperties];
 
         // Filter by city
         if (filters.city) {
@@ -46,7 +50,7 @@ export default function SearchContent() {
         results = results.filter(p => p.available);
 
         setFilteredProperties(results);
-    }, [filters]);
+    }, [filters, initialProperties]);
 
     const handleFilterChange = (newFilters: Partial<typeof filters>) => {
         setFilters(prev => ({ ...prev, ...newFilters }));

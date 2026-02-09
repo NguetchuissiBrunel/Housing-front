@@ -9,7 +9,7 @@ import { mockBookings, mockProperties, getPropertyById, mockUsers } from "@/lib/
 import { formatPrice, formatDate } from "@/lib/utils";
 
 export default function DashboardPage() {
-    const [activeTab, setActiveTab] = useState<'bookings' | 'favorites'>('bookings');
+    const [activeTab, setActiveTab] = useState<'bookings' | 'favorites' | 'messages' | 'settings'>('bookings');
 
     // Simuler un utilisateur connecté
     const currentUser = mockUsers[2]; // Marie Kamga (étudiant)
@@ -55,8 +55,8 @@ export default function DashboardPage() {
                                         key={item.id}
                                         onClick={() => setActiveTab(item.id as any)}
                                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold transition-all ${activeTab === item.id
-                                                ? 'bg-brand-primary text-white shadow-lg'
-                                                : 'text-slate-600 hover:bg-slate-50'
+                                            ? 'bg-brand-primary text-white shadow-lg'
+                                            : 'text-slate-600 hover:bg-slate-50'
                                             }`}
                                     >
                                         <item.icon className="w-5 h-5" />
