@@ -3,23 +3,33 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, Search, Info, Phone, LogIn, UserPlus, Menu, X, LogOut, LayoutDashboard, MessageSquare } from 'lucide-react';
+import { Home, Search, Info, Phone, LogIn, UserPlus, Menu, X, LogOut, LayoutDashboard, MessageSquare, ChevronDown, User } from 'lucide-react';
 import Button from '../ui/Button';
-import { getCurrentUser, clearCurrentUser, getDashboardUrl } from '@/lib/auth';
-import { getUnreadCount } from '@/lib/mockData';
+import { clearCurrentUser } from '@/lib/auth';
+import { logout, getSession } from '@/app/actions/auth-actions';
 
 export default function Header() {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    // Initialize with null to match server-side rendering and avoid hydration mismatch
-    const [currentUser, setCurrentUser] = useState<any | null>(null);
+    const [user, setUser] = useState<any>(null);
+    const [isLoaded, setIsLoaded] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
 
     // Pages avec fond sombre (Hero dark)
     const darkPages = ['/'];
     const isDarkPage = darkPages.includes(pathname);
+
+    useEffect(() => {
+        const checkSession = async () => {
+            const session = await getSession();
+            setUser(session);
+            setIsLoaded(true);
+        };
+        checkSession();
+    }, [pathname]);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -29,20 +39,12 @@ export default function Header() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    useEffect(() => {
-        // Update user state on mount and route change
-        // This ensures the initial render matches the server (null user)
-        const user = getCurrentUser();
-        setCurrentUser(user);
-        if (user) {
-            setUnreadCount(getUnreadCount(user.id));
-        }
-    }, [pathname]);
-
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        await logout();
         clearCurrentUser();
-        setCurrentUser(null);
+        setUser(null);
         router.push('/');
+        router.refresh();
     };
 
     // Sur pages sombres : transparent → blanc au scroll
@@ -88,52 +90,77 @@ export default function Header() {
                 </nav>
 
                 <div className="hidden md:flex items-center gap-5">
-                    {currentUser ? (
+                    {isLoaded && (
                         <>
-                            {/* Messages with badge */}
-                            <Link href="/messages" className="relative">
-                                <Button variant="ghost" size="sm" className={`font-bold uppercase tracking-widest text-[11px] ${(isDarkPage && !isScrolled) ? 'text-white' : 'text-slate-700'}`}>
-                                    <MessageSquare className="w-4 h-4 mr-2" />
-                                    Messages
-                                </Button>
-                                {unreadCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                                        {unreadCount}
-                                    </span>
-                                )}
-                            </Link>
-                            {/* Dashboard */}
-                            <Link href={getDashboardUrl(currentUser.role)}>
-                                <Button variant="ghost" size="sm" className={`font-bold uppercase tracking-widest text-[11px] ${(isDarkPage && !isScrolled) ? 'text-white' : 'text-slate-700'}`}>
-                                    <LayoutDashboard className="w-4 h-4 mr-2" />
-                                    Dashboard
-                                </Button>
-                            </Link>
-                            {/* Logout */}
-                            <Button
-                                onClick={handleLogout}
-                                variant="primary"
-                                size="sm"
-                                className="rounded-xl px-6 py-2.5 font-bold uppercase tracking-widest text-[11px] shadow-lg shadow-brand-primary/20"
-                            >
-                                <LogOut className="w-4 h-4 mr-2" />
-                                Déconnexion
-                            </Button>
-                        </>
-                    ) : (
-                        <>
-                            <Link href="/login">
-                                <Button variant="ghost" size="sm" className={`font-bold uppercase tracking-widest text-[11px] ${(isDarkPage && !isScrolled) ? 'text-white' : 'text-slate-700'}`}>
-                                    <LogIn className="w-4 h-4 mr-2" />
-                                    Connexion
-                                </Button>
-                            </Link>
-                            <Link href="/register">
-                                <Button variant="primary" size="sm" className="rounded-xl px-6 py-2.5 font-bold uppercase tracking-widest text-[11px] shadow-lg shadow-brand-primary/20">
-                                    <UserPlus className="w-4 h-4 mr-2" />
-                                    S&apos;inscrire
-                                </Button>
-                            </Link>
+                            {user ? (
+                                <div className="flex items-center gap-4">
+                                    <Link href="/messages" className="relative p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
+                                        <MessageSquare className="w-5 h-5" />
+                                        {unreadCount > 0 && (
+                                            <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">
+                                                {unreadCount}
+                                            </span>
+                                        )}
+                                    </Link>
+
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                                            className="flex items-center gap-2 p-1 pl-3 pr-1 bg-slate-100 rounded-full border border-slate-200 hover:bg-slate-200 transition-colors"
+                                        >
+                                            <span className="text-sm font-bold text-slate-700">{user.name || user.email.split('@')[0]}</span>
+                                            <div className="w-8 h-8 bg-brand-primary rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                                                {user.name?.charAt(0) || user.email.charAt(0)}
+                                            </div>
+                                            <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+
+                                        {isUserMenuOpen && (
+                                            <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 animate-in fade-in slide-in-from-top-2">
+                                                <Link
+                                                    href={user.role === 'LANDLORD' ? '/landlord/dashboard' : '/dashboard'}
+                                                    onClick={() => setIsUserMenuOpen(false)}
+                                                    className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                                                >
+                                                    <LayoutDashboard className="w-4 h-4" />
+                                                    Mon Dashboard
+                                                </Link>
+                                                <Link
+                                                    href="/settings"
+                                                    onClick={() => setIsUserMenuOpen(false)}
+                                                    className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                                                >
+                                                    <User className="w-4 h-4" />
+                                                    Paramètres
+                                                </Link>
+                                                <div className="h-px bg-slate-100 my-1"></div>
+                                                <button
+                                                    onClick={handleLogout}
+                                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                                                >
+                                                    <LogOut className="w-4 h-4" />
+                                                    Déconnexion
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <Link href="/login">
+                                        <Button variant="ghost" size="sm" className={`font-bold uppercase tracking-widest text-[11px] ${(isDarkPage && !isScrolled) ? 'text-white' : 'text-slate-700'}`}>
+                                            <LogIn className="w-4 h-4 mr-2" />
+                                            Connexion
+                                        </Button>
+                                    </Link>
+                                    <Link href="/register">
+                                        <Button variant="primary" size="sm" className="rounded-xl px-6 py-2.5 font-bold uppercase tracking-widest text-[11px] shadow-lg shadow-brand-primary/20">
+                                            <UserPlus className="w-4 h-4 mr-2" />
+                                            S&apos;inscrire
+                                        </Button>
+                                    </Link>
+                                </>
+                            )}
                         </>
                     )}
                 </div>
@@ -168,9 +195,9 @@ export default function Header() {
                     </Link>
                 </div>
                 <div className="pt-6 border-t border-slate-100 flex flex-col gap-4">
-                    {currentUser ? (
+                    {user ? (
                         <>
-                            <Link href="/messages" className="w-full relative">
+                            <Link href="/messages" className="w-full relative" onClick={() => setIsMobileMenuOpen(false)}>
                                 <Button variant="outline" size="md" fullWidth className="rounded-2xl h-14 font-black uppercase tracking-widest text-xs justify-start">
                                     <MessageSquare className="w-5 h-5 mr-3" /> Messages
                                     {unreadCount > 0 && (
@@ -180,7 +207,11 @@ export default function Header() {
                                     )}
                                 </Button>
                             </Link>
-                            <Link href={getDashboardUrl(currentUser.role)} className="w-full">
+                            <Link
+                                href={user.role === 'LANDLORD' ? '/landlord/dashboard' : '/dashboard'}
+                                className="w-full"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
                                 <Button variant="outline" size="md" fullWidth className="rounded-2xl h-14 font-black uppercase tracking-widest text-xs">
                                     <LayoutDashboard className="w-5 h-5 mr-3" /> Dashboard
                                 </Button>
@@ -197,12 +228,12 @@ export default function Header() {
                         </>
                     ) : (
                         <>
-                            <Link href="/login" className="w-full">
+                            <Link href="/login" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
                                 <Button variant="outline" size="md" fullWidth className="rounded-2xl h-14 font-black uppercase tracking-widest text-xs">
                                     <LogIn className="w-5 h-5 mr-3" /> Connexion
                                 </Button>
                             </Link>
-                            <Link href="/register" className="w-full">
+                            <Link href="/register" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
                                 <Button variant="primary" size="md" fullWidth className="rounded-2xl h-14 font-black uppercase tracking-widest text-xs shadow-xl shadow-brand-primary/20">
                                     <UserPlus className="w-5 h-5 mr-3" /> S&apos;inscrire
                                 </Button>

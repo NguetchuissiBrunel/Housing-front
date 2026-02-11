@@ -4,11 +4,13 @@ import Button from "@/components/ui/Button";
 import Link from "next/link";
 import PropertyCard from "@/components/housing/PropertyCard";
 import { getProperties } from "@/app/actions/property-actions";
+import { getSession } from "@/app/actions/auth-actions";
 
 export default async function Home() {
   // Get properties from database
-  const result = await getProperties();
-  const properties = (result.success && result.data) ? (result.data as any[]) : [];
+  const propertiesResult = await getProperties();
+  const session = await getSession();
+  const properties = (propertiesResult.success && propertiesResult.data) ? (propertiesResult.data as any[]) : [];
 
   // Get first 3 properties for featured section
   const featuredProperties = properties.slice(0, 3);
@@ -34,7 +36,12 @@ export default async function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {featuredProperties.map((property) => (
-              <PropertyCard key={property.id} property={property} />
+              <PropertyCard
+                key={property.id}
+                property={property}
+                currentUser={session}
+                isInitialFavorited={false}
+              />
             ))}
           </div>
         </div>

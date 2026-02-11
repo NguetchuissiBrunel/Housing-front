@@ -6,38 +6,33 @@ import { Home, Upload, MapPin, DollarSign, Bed, Bath, Maximize, Wifi, Utensils, 
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { useRouter } from "next/navigation";
-import { createProperty } from "@/app/actions/property-actions";
-import { getSession } from "@/app/actions/auth-actions";
+import { updateProperty } from "@/app/actions/property-actions";
 import { toast } from "sonner";
 
-export default function PublishPropertyPage() {
+interface EditPropertyClientProps {
+    property: any;
+    user: any;
+}
+
+export default function EditPropertyClient({ property, user }: EditPropertyClientProps) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
-    const [user, setUser] = useState<any>(null);
     const [formData, setFormData] = useState({
-        title: "",
-        description: "",
-        type: "studio",
-        city: "Yaoundé",
-        address: "",
-        bedrooms: "1",
-        bathrooms: "1",
-        area: "",
-        price: "",
-        deposit: "",
-        availableFrom: "",
-        minDuration: 6,
+        title: property.title || "",
+        description: property.description || "",
+        type: property.type || "studio",
+        city: property.city || "Yaoundé",
+        address: property.address || "",
+        bedrooms: property.bedrooms?.toString() || "1",
+        bathrooms: property.bathrooms?.toString() || "1",
+        area: property.area?.toString() || "0",
+        price: property.price?.toString() || "0",
+        deposit: property.deposit?.toString() || "0",
+        availableFrom: property.availableFrom ? property.availableFrom.split('T')[0] : "",
+        minDuration: property.minDuration || 6,
     });
 
-    useEffect(() => {
-        const fetchSession = async () => {
-            const session = await getSession();
-            setUser(session);
-        };
-        fetchSession();
-    }, []);
-
-    const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+    const [selectedAmenities, setSelectedAmenities] = useState<string[]>(property.features || []);
 
     const amenities = [
         { id: "wifi", label: "Wi-Fi", icon: Wifi },
@@ -83,13 +78,12 @@ export default function PublishPropertyPage() {
         e.preventDefault();
 
         if (!user) {
-            toast.error("Veuillez vous connecter pour publier une offre");
+            toast.error("Veuillez vous connecter pour modifier une offre");
             return;
         }
 
         setIsLoading(true);
         try {
-            // Prepare data for Prisma
             const propertyData = {
                 title: formData.title,
                 description: formData.description,
@@ -101,23 +95,20 @@ export default function PublishPropertyPage() {
                 bathrooms: parseInt(formData.bathrooms.toString()) || 0,
                 area: parseFloat(formData.area.toString()) || 0,
                 features: selectedAmenities,
-                ownerId: user.id,
-                // Add default images for demo
-                images: ["https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80"]
             };
 
-            const result = await createProperty(propertyData);
+            const result = await updateProperty(property.id, propertyData);
 
             if (result.success) {
-                toast.success("Annonce publiée avec succès !");
+                toast.success("Annonce mise à jour avec succès !");
                 router.push("/landlord/dashboard");
                 router.refresh();
             } else {
-                toast.error(result.error || "Erreur lors de la publication");
+                toast.error(result.error || "Erreur lors de la mise à jour");
             }
         } catch (error) {
-            console.error("Submission error:", error);
-            toast.error("Une erreur s'est produite lors de la publication");
+            console.error("Update error:", error);
+            toast.error("Une erreur s'est produite lors de la mise à jour");
         } finally {
             setIsLoading(false);
         }
@@ -126,18 +117,16 @@ export default function PublishPropertyPage() {
     return (
         <div className="min-h-screen bg-slate-50 pt-20">
             <div className="container py-8">
-                {/* Header */}
                 <div className="mb-8">
                     <Link href="/landlord/dashboard" className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4">
                         <ArrowLeft className="w-5 h-5" />
                         <span className="font-semibold">Retour au dashboard</span>
                     </Link>
-                    <h1 className="text-4xl font-bold text-slate-900 mb-2">Publier une offre de logement</h1>
-                    <p className="text-slate-600 text-lg">Remplissez les informations ci-dessous pour publier votre propriété</p>
+                    <h1 className="text-4xl font-bold text-slate-900 mb-2">Modifier l'offre</h1>
+                    <p className="text-slate-600 text-lg">Mettez à jour les informations de votre propriété</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="max-w-4xl">
-                    {/* Informations de base */}
                     <div className="bg-white rounded-3xl border border-slate-200 p-8 mb-6">
                         <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                             <div className="w-10 h-10 bg-brand-secondary/10 rounded-xl flex items-center justify-center">
@@ -209,7 +198,6 @@ export default function PublishPropertyPage() {
                         </div>
                     </div>
 
-                    {/* Caractéristiques */}
                     <div className="bg-white rounded-3xl border border-slate-200 p-8 mb-6">
                         <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                             <div className="w-10 h-10 bg-brand-secondary/10 rounded-xl flex items-center justify-center">
@@ -227,7 +215,6 @@ export default function PublishPropertyPage() {
                                 min="0"
                                 required
                             />
-
                             <Input
                                 type="number"
                                 label="Nombre de salles de bain"
@@ -236,7 +223,6 @@ export default function PublishPropertyPage() {
                                 min="1"
                                 required
                             />
-
                             <Input
                                 type="number"
                                 label="Surface (m²)"
@@ -248,7 +234,6 @@ export default function PublishPropertyPage() {
                         </div>
                     </div>
 
-                    {/* Prix */}
                     <div className="bg-white rounded-3xl border border-slate-200 p-8 mb-6">
                         <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                             <div className="w-10 h-10 bg-brand-secondary/10 rounded-xl flex items-center justify-center">
@@ -261,17 +246,14 @@ export default function PublishPropertyPage() {
                             <Input
                                 type="number"
                                 label="Loyer mensuel (FCFA)"
-                                placeholder="75000"
                                 value={formData.price}
                                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                                 min="1"
                                 required
                             />
-
                             <Input
                                 type="number"
                                 label="Caution (FCFA)"
-                                placeholder="150000"
                                 value={formData.deposit}
                                 onChange={(e) => setFormData({ ...formData, deposit: e.target.value })}
                                 min="0"
@@ -280,10 +262,8 @@ export default function PublishPropertyPage() {
                         </div>
                     </div>
 
-                    {/* Équipements */}
                     <div className="bg-white rounded-3xl border border-slate-200 p-8 mb-6">
                         <h2 className="text-2xl font-bold text-slate-900 mb-6">Équipements et services</h2>
-
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             {amenities.map((amenity) => (
                                 <button
@@ -295,10 +275,8 @@ export default function PublishPropertyPage() {
                                         : 'border-slate-200 hover:border-slate-300'
                                         }`}
                                 >
-                                    <amenity.icon className={`w-6 h-6 mx-auto mb-2 ${selectedAmenities.includes(amenity.id) ? 'text-brand-secondary' : 'text-slate-400'
-                                        }`} />
-                                    <div className={`text-sm font-semibold ${selectedAmenities.includes(amenity.id) ? 'text-brand-secondary' : 'text-slate-700'
-                                        }`}>
+                                    <amenity.icon className={`w-6 h-6 mx-auto mb-2 ${selectedAmenities.includes(amenity.id) ? 'text-brand-secondary' : 'text-slate-400'}`} />
+                                    <div className={`text-sm font-semibold ${selectedAmenities.includes(amenity.id) ? 'text-brand-secondary' : 'text-slate-700'}`}>
                                         {amenity.label}
                                     </div>
                                 </button>
@@ -306,60 +284,6 @@ export default function PublishPropertyPage() {
                         </div>
                     </div>
 
-                    {/* Disponibilité */}
-                    <div className="bg-white rounded-3xl border border-slate-200 p-8 mb-6">
-                        <h2 className="text-2xl font-bold text-slate-900 mb-6">Disponibilité</h2>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <Input
-                                type="date"
-                                label="Disponible à partir du"
-                                value={formData.availableFrom}
-                                onChange={(e) => setFormData({ ...formData, availableFrom: e.target.value })}
-                                required
-                            />
-
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">Durée minimum (mois)</label>
-                                <select
-                                    value={formData.minDuration}
-                                    onChange={(e) => setFormData({ ...formData, minDuration: parseInt(e.target.value) })}
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-secondary/20 focus:border-brand-secondary transition-all"
-                                    required
-                                >
-                                    <option value="3">3 mois</option>
-                                    <option value="6">6 mois</option>
-                                    <option value="9">9 mois</option>
-                                    <option value="12">12 mois</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Images */}
-                    <div className="bg-white rounded-3xl border border-slate-200 p-8 mb-8">
-                        <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
-                            <div className="w-10 h-10 bg-brand-secondary/10 rounded-xl flex items-center justify-center">
-                                <Upload className="w-6 h-6 text-brand-secondary" />
-                            </div>
-                            Photos du logement
-                        </h2>
-
-                        <div className="border-2 border-dashed border-slate-300 rounded-2xl p-12 text-center hover:border-brand-secondary transition-colors cursor-pointer">
-                            <Upload className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                            <p className="text-slate-600 font-semibold mb-2">Cliquez pour ajouter des photos</p>
-                            <p className="text-sm text-slate-500">ou glissez-déposez vos images ici</p>
-                            <p className="text-xs text-slate-400 mt-3">Format acceptés : JPG, PNG (max 5MB par image)</p>
-                        </div>
-
-                        <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
-                            <p className="text-sm text-blue-800">
-                                💡 <strong>Mode démo</strong> : L'upload d'images est simulé. Les images par défaut seront utilisées.
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Actions */}
                     <div className="flex gap-4">
                         <Button
                             type="button"
@@ -380,10 +304,10 @@ export default function PublishPropertyPage() {
                             {isLoading ? (
                                 <div className="flex items-center gap-2">
                                     <Loader2 className="w-5 h-5 animate-spin" />
-                                    <span>Publication en cours...</span>
+                                    <span>Mise à jour en cours...</span>
                                 </div>
                             ) : (
-                                "Publier l'offre"
+                                "Enregistrer les modifications"
                             )}
                         </Button>
                     </div>

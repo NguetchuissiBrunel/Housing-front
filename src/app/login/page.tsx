@@ -6,7 +6,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { mockUsers, UserRole } from "@/lib/mockData";
+import { UserRole } from "@prisma/client";
 import { setCurrentUser, getDashboardUrl } from "@/lib/auth";
 
 export default function LoginPage() {
@@ -17,35 +17,34 @@ export default function LoginPage() {
         password: "",
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+    const { login: loginAction } = require("@/app/actions/auth-actions");
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError(null);
+        setLoading(true);
 
-        // Simulation de connexion - trouver l'utilisateur par email
-        // En mode démo, on accepte n'importe quel email
-        let user = mockUsers.find(u => u.email === formData.email);
+        try {
+            const result = await loginAction({ email: formData.email, password: formData.password });
 
-        // Si pas trouvé, créer un utilisateur étudiant par défaut
-        if (!user) {
-            user = {
-                id: Math.random().toString(36).substr(2, 9),
-                name: formData.email.split('@')[0],
-                email: formData.email,
-                role: UserRole.STUDENT,
-                verified: true
-            };
+            if (result.success) {
+                // Sync client-side state
+                setCurrentUser(result.data);
+
+                // Redirection selon le rôle
+                const dashboardUrl = getDashboardUrl(result.data.role);
+                router.push(dashboardUrl);
+                router.refresh();
+            } else {
+                setError(result.error);
+            }
+        } catch (err) {
+            setError("Une erreur est survenue lors de la connexion");
+        } finally {
+            setLoading(false);
         }
-
-        // Sauvegarder l'utilisateur connecté
-        setCurrentUser({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role
-        });
-
-        // Redirection selon le rôle
-        const dashboardUrl = getDashboardUrl(user.role);
-        router.push(dashboardUrl);
     };
 
     return (
@@ -72,6 +71,12 @@ export default function LoginPage() {
                         <h1 className="text-3xl font-bold text-slate-900 mb-2">Bon retour !</h1>
                         <p className="text-slate-500 font-medium">Connectez-vous pour accéder à votre compte</p>
                     </div>
+
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-medium animate-in fade-in slide-in-from-top-2">
+                            {error}
+                        </div>
+                    )}
 
                     {/* Login Form */}
                     <div className="bg-white rounded-3xl border border-slate-200 shadow-xl p-8">

@@ -13,7 +13,6 @@ generator client {
 enum UserRole {
   STUDENT
   LANDLORD
-  ADMIN
 }
 
 enum BookingStatus {
@@ -33,6 +32,7 @@ model User {
   verified      Boolean   @default(false)
   properties    Property[]
   bookings      Booking[]
+  favorites     Favorite[]
   reviews       Review[]
   sentMessages  Message[] @relation("SentMessages")
   conversationsAsStudent Conversation[] @relation("StudentConversations")
@@ -45,6 +45,7 @@ model Property {
   id          String   @id @default(cuid())
   title       String
   description String
+  type        String   @default("studio")
   price       Float
   address     String
   city        String
@@ -59,6 +60,7 @@ model Property {
   owner       User     @relation(fields: [ownerId], references: [id])
   ownerId     String
   bookings    Booking[]
+  favorites   Favorite[]
   reviews     Review[]
   conversations Conversation[]
   createdAt   DateTime @default(now())
@@ -112,4 +114,14 @@ model Message {
   content        String
   read           Boolean      @default(false)
   createdAt      DateTime     @default(now())
+}
+model Favorite {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  property    Property @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, propertyId])
 }

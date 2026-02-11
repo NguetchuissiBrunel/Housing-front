@@ -1,6 +1,7 @@
 "use client";
 
 import { createProperty } from "@/app/actions/property-actions";
+import { getSession } from "@/app/actions/auth-actions";
 
 export interface CreateHousingData {
     title: string;
@@ -35,9 +36,8 @@ export interface Housing {
 class HousingService {
     async createHousing(data: CreateHousingData): Promise<Housing> {
         try {
-            // Get current user from localStorage (mock auth)
-            const userStr = localStorage.getItem('logement_current_user');
-            const user = userStr ? JSON.parse(userStr) : null;
+            // Get current user from session (cookie)
+            const user = await getSession();
 
             if (!user) {
                 throw new Error("Vous devez être connecté pour créer une annonce");

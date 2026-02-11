@@ -61,3 +61,56 @@ export async function updateBookingStatus(id: string, status: BookingStatus) {
         return { success: false, error: "Failed to update booking status" };
     }
 }
+export async function getBookingsByLandlord(landlordId: string) {
+    try {
+        const bookings = await db.booking.findMany({
+            where: {
+                property: {
+                    ownerId: landlordId,
+                },
+            },
+            include: {
+                property: true,
+                user: true,
+            },
+            orderBy: { createdAt: "desc" },
+        });
+        return { success: true, data: bookings };
+    } catch (error) {
+        console.error("Failed to fetch landlord bookings:", error);
+        return { success: false, error: "Failed to fetch landlord bookings" };
+    }
+}
+
+export async function cancelBooking(id: string, userId: string) {
+    try {
+        // Find the booking first to check ownership and status
+        const booking = await db.booking.findUnique({
+            where: { id },
+        });
+
+        if (!booking) {
+            return { success: false, error: "Réservation non trouvée" };
+        }
+
+        if (booking.userId !== userId) {
+            return { success: false, error: "Non autorisé" };
+        }
+
+        if (booking.status !== BookingStatus.PENDING) {
+            return { success: false, error: "Seules les réservations en attente peuvent être annulées" };
+        }
+
+        await db.booking.delete({
+            where: { id },
+        });
+
+        revalidatePath("/dashboard");
+        revalidatePath("/landlord/dashboard");
+
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to cancel booking:", error);
+        return { success: false, error: "Erreur lors de l'annulation" };
+    }
+}

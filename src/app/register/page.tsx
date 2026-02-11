@@ -6,7 +6,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { UserRole } from "@/lib/mockData";
+import { UserRole } from "@prisma/client";
 import { setCurrentUser, getDashboardUrl } from "@/lib/auth";
 
 export default function RegisterPage() {
@@ -16,27 +16,51 @@ export default function RegisterPage() {
     const [formData, setFormData] = useState({
         name: "",
         email: "",
+        phone: "",
         password: "",
         confirmPassword: "",
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+    const { register: registerAction } = require("@/app/actions/auth-actions");
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError(null);
 
-        // Simulation d'inscription - créer un utilisateur mocké
-        const newUser = {
-            id: Math.random().toString(36).substr(2, 9),
-            name: formData.name,
-            email: formData.email,
-            role: selectedRole
-        };
+        if (formData.password !== formData.confirmPassword) {
+            setError("Les mots de passe ne correspondent pas");
+            return;
+        }
 
-        // Sauvegarder l'utilisateur connecté
-        setCurrentUser(newUser);
+        setLoading(true);
 
-        // Redirection selon le rôle
-        const dashboardUrl = getDashboardUrl(selectedRole);
-        router.push(dashboardUrl);
+        try {
+            const result = await registerAction({
+                email: formData.email,
+                name: formData.name,
+                role: selectedRole,
+                phone: formData.phone,
+                password: formData.password
+            });
+
+            if (result.success) {
+                // Sync client-side state
+                setCurrentUser(result.data);
+
+                // Redirection selon le rôle
+                const dashboardUrl = getDashboardUrl(result.data.role);
+                router.push(dashboardUrl);
+                router.refresh();
+            } else {
+                setError(result.error);
+            }
+        } catch (err) {
+            setError("Une erreur est survenue lors de l'inscription");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -63,6 +87,12 @@ export default function RegisterPage() {
                         <h1 className="text-3xl font-bold text-slate-900 mb-2">Créer un compte</h1>
                         <p className="text-slate-500 font-medium">Rejoignez des milliers d'étudiants</p>
                     </div>
+
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-medium animate-in fade-in slide-in-from-top-2">
+                            {error}
+                        </div>
+                    )}
 
                     {/* Register Form */}
                     <div className="bg-white rounded-3xl border border-slate-200 shadow-xl p-8">
@@ -121,6 +151,15 @@ export default function RegisterPage() {
                                 placeholder="votre@email.com"
                                 value={formData.email}
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                required
+                            />
+
+                            <Input
+                                type="tel"
+                                label="Numéro de téléphone"
+                                placeholder="690 00 00 00"
+                                value={formData.phone}
+                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                 required
                             />
 

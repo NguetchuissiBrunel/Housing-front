@@ -9,6 +9,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Logement - Trouvez votre chez-vous",
   description: "Plateforme fiable pour la recherche de logements étudiants.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 import { Toaster } from 'sonner';

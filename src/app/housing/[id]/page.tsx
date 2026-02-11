@@ -1,5 +1,3 @@
-"use server";
-
 import {
     MapPin, Bed, Bath, Maximize, Share2, Heart, ArrowLeft,
     CheckCircle2, UserCircle2, MessageSquare, Phone,
@@ -9,19 +7,23 @@ import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Link from "next/link";
 import { getPropertyById } from "@/app/actions/property-actions";
+import { getSession } from "@/app/actions/auth-actions";
 import { formatPrice, formatDate } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import ImageGallery from "./ImageGallery";
+import PropertyActions from "./PropertyActions";
+import ReviewForm from "./ReviewForm";
 
 interface PageProps {
-    params: { id: string };
+    params: Promise<{ id: string }>;
 }
 
 export default async function HousingDetailPage({ params }: PageProps) {
-    const { id } = params;
+    const { id } = await params;
 
     const result = await getPropertyById(id);
     const property = result.success ? result.data : null;
+    const session = await getSession();
 
     if (!property) {
         notFound();
@@ -40,9 +42,6 @@ export default async function HousingDetailPage({ params }: PageProps) {
                         <span className="uppercase tracking-wider text-xs">Retour</span>
                     </Link>
                     <div className="flex gap-3">
-                        <button className="p-4 bg-slate-50 rounded-2xl text-slate-400 hover:text-pink-500 transition-all border border-slate-100 hover:shadow-lg active:scale-90">
-                            <Heart className="w-5 h-5" />
-                        </button>
                         <button className="p-4 bg-slate-50 rounded-2xl text-slate-400 hover:text-brand-primary transition-all border border-slate-100 hover:shadow-lg active:scale-90">
                             <Share2 className="w-5 h-5" />
                         </button>
@@ -117,6 +116,11 @@ export default async function HousingDetailPage({ params }: PageProps) {
                                 </div>
                             </div>
 
+                            {/* Review Form */}
+                            {session && (
+                                <ReviewForm propertyId={property.id} userId={session.id} />
+                            )}
+
                             {/* Reviews */}
                             {reviews.length > 0 && (
                                 <div className="pt-8 border-t border-slate-200 space-y-6">
@@ -152,43 +156,19 @@ export default async function HousingDetailPage({ params }: PageProps) {
                         </div>
                     </div>
 
-                    {/* Booking Sidebar */}
+                    {/* Sidebar Actions */}
                     <div className="lg:col-span-4 lg:sticky lg:top-32 h-fit space-y-6">
-                        {/* Price Card */}
-                        <div className="bg-gradient-to-br from-brand-primary to-brand-primary-dark rounded-[40px] p-8 text-white space-y-6 shadow-2xl">
-                            <div className="space-y-2">
-                                <span className="text-white/60 text-xs font-bold uppercase tracking-wider">Prix mensuel</span>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-5xl font-bold">{formatPrice(property.price)}</span>
-                                    <span className="text-sm font-bold text-white/80">FCFA</span>
-                                </div>
-                            </div>
+                        <PropertyActions
+                            propertyId={property.id}
+                            landlordId={property.ownerId}
+                            landlordPhone={property.owner.phone}
+                            price={property.price}
+                            userId={session?.id}
+                        />
 
-                            <div className="space-y-3">
-                                <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-sm">
-                                    <div className="text-xs font-bold text-white/60 uppercase tracking-wider mb-1">Caution</div>
-                                    <div className="font-bold text-lg">1 mois de loyer</div>
-                                </div>
-                                <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-sm">
-                                    <div className="text-xs font-bold text-white/60 uppercase tracking-wider mb-1">Charges incluses</div>
-                                    <div className="font-bold text-lg flex items-center gap-2">
-                                        Eau & Wi-Fi <CheckCircle2 className="w-5 h-5 text-green-400" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <Button variant="secondary" fullWidth size="lg" className="h-16 rounded-2xl text-sm font-bold uppercase tracking-wider shadow-xl bg-white text-brand-primary hover:bg-slate-50">
-                                Réserver maintenant
-                            </Button>
-
-                            <p className="text-center text-xs font-bold text-white/40 uppercase tracking-wider">
-                                Paiement sécurisé
-                            </p>
-                        </div>
-
-                        {/* Owner Card */}
-                        <div className="bg-white rounded-[40px] p-8 border border-slate-200 shadow-soft space-y-6">
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Propriétaire</h3>
+                        {/* Owner Card (Only the header part, actions are in PropertyActions) */}
+                        <div className="bg-white rounded-[40px] p-8 border border-slate-200 shadow-soft">
+                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6">Informations Hôte</h3>
                             <div className="flex items-center gap-4">
                                 <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-brand-primary relative">
                                     <UserCircle2 className="w-10 h-10" />
@@ -200,14 +180,6 @@ export default async function HousingDetailPage({ params }: PageProps) {
                                     <div className="font-bold text-slate-900 text-xl">{owner?.name || 'Propriétaire'}</div>
                                     <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Hôte vérifié</div>
                                 </div>
-                            </div>
-                            <div className="grid grid-cols-1 gap-3">
-                                <Button variant="primary" fullWidth className="rounded-2xl h-14 font-bold text-xs uppercase tracking-wider gap-2">
-                                    <MessageSquare className="w-4 h-4" /> Envoyer un message
-                                </Button>
-                                <Button variant="outline" fullWidth className="rounded-2xl h-14 bg-slate-50 border-transparent text-slate-600 font-bold text-xs uppercase tracking-wider gap-2 hover:bg-slate-100">
-                                    <Phone className="w-4 h-4" /> Voir le contact
-                                </Button>
                             </div>
                         </div>
                     </div>

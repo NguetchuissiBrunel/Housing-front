@@ -20,6 +20,24 @@ export async function getProperties() {
     }
 }
 
+export async function getPropertiesByLandlord(ownerId: string) {
+    try {
+        const properties = await db.property.findMany({
+            where: { ownerId },
+            include: {
+                owner: true,
+            },
+            orderBy: {
+                createdAt: "desc",
+            },
+        });
+        return { success: true, data: properties };
+    } catch (error) {
+        console.error("Failed to fetch landlord properties:", error);
+        return { success: false, error: "Failed to fetch landlord properties" };
+    }
+}
+
 export async function getPropertyById(id: string) {
     try {
         const property = await db.property.findUnique({
@@ -69,6 +87,7 @@ export async function updateProperty(id: string, data: any) {
         });
         revalidatePath(`/housing/${id}`);
         revalidatePath("/search");
+        revalidatePath("/landlord/dashboard");
         return { success: true, data: property };
     } catch (error) {
         console.error("Failed to update property:", error);
@@ -82,6 +101,7 @@ export async function deleteProperty(id: string) {
             where: { id },
         });
         revalidatePath("/search");
+        revalidatePath("/landlord/dashboard");
         return { success: true };
     } catch (error) {
         console.error("Failed to delete property:", error);

@@ -131,11 +131,16 @@ async function main() {
         },
     ];
 
+    // Clear existing data (optional, but good for clean seed)
+    await prisma.review.deleteMany({});
+    await prisma.booking.deleteMany({});
+    await prisma.message.deleteMany({});
+    await prisma.conversation.deleteMany({});
+    await prisma.property.deleteMany({});
+
     for (const property of properties) {
-        await prisma.property.upsert({
-            where: { id: property.title },
-            update: {},
-            create: property,
+        await prisma.property.create({
+            data: property,
         });
     }
 

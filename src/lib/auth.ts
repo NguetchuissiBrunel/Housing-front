@@ -1,8 +1,7 @@
-"use client";
+import { UserRole } from '@prisma/client';
 
-import { UserRole } from './mockData';
-
-// Simulated current user (stored in localStorage)
+// Cookie name for server-side session
+const SESSION_COOKIE_NAME = 'logement_session';
 const CURRENT_USER_KEY = 'logement_current_user';
 
 export interface CurrentUser {
@@ -12,70 +11,67 @@ export interface CurrentUser {
     role: UserRole;
 }
 
-// Get current logged-in user
+// Get current logged-in user (works in both Client and Server components)
 export function getCurrentUser(): CurrentUser | null {
-    if (typeof window === 'undefined') return null;
+    // Client-side: check localStorage first for immediate UI
+    if (typeof window !== 'undefined') {
+        const userStr = localStorage.getItem(CURRENT_USER_KEY);
+        if (userStr) {
+            try {
+                return JSON.parse(userStr);
+            } catch {
+                return null;
+            }
+        }
+    }
 
-    const userStr = localStorage.getItem(CURRENT_USER_KEY);
-    if (!userStr) return null;
+    // On server or if localStorage is empty, we'd ideally check cookies
+    // Note: next/headers cookies() can only be used in server components/actions
+    // This function will primarily serve client-side needs or be passed data from server
+    return null;
+}
 
-    try {
-        return JSON.parse(userStr);
-    } catch {
-        return null;
+// Set current user (syncs with localStorage for client-side persistence)
+export function setCurrentUser(user: CurrentUser): void {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
     }
 }
 
-// Set current user (login)
-export function setCurrentUser(user: CurrentUser): void {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-}
-
-// Clear current user (logout)
+// Clear current user
 export function clearCurrentUser(): void {
-    if (typeof window === 'undefined') return;
-    localStorage.removeItem(CURRENT_USER_KEY);
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem(CURRENT_USER_KEY);
+    }
 }
 
-// Check if user is logged in
+// ... existing helper functions ...
 export function isAuthenticated(): boolean {
     return getCurrentUser() !== null;
 }
 
-// Check if user is a landlord
 export function isLandlord(): boolean {
     const user = getCurrentUser();
     return user?.role === UserRole.LANDLORD;
 }
 
-// Check if user is a student
 export function isStudent(): boolean {
     const user = getCurrentUser();
     return user?.role === UserRole.STUDENT;
 }
 
-// Check if user is an admin
-export function isAdmin(): boolean {
-    const user = getCurrentUser();
-    return user?.role === UserRole.ADMIN;
-}
 
-// Get user role
 export function getUserRole(): UserRole | null {
     const user = getCurrentUser();
     return user?.role || null;
 }
 
-// Get dashboard URL based on role
 export function getDashboardUrl(role: UserRole): string {
     switch (role) {
         case UserRole.LANDLORD:
             return '/landlord/dashboard';
         case UserRole.STUDENT:
             return '/dashboard';
-        case UserRole.ADMIN:
-            return '/admin/dashboard';
         default:
             return '/dashboard';
     }

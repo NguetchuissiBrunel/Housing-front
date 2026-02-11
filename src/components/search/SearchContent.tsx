@@ -9,19 +9,33 @@ import { Property } from "@prisma/client";
 
 interface SearchContentProps {
     initialProperties: Property[];
+    currentUser?: any;
 }
 
-export default function SearchContent({ initialProperties }: SearchContentProps) {
+export default function SearchContent({ initialProperties, currentUser }: SearchContentProps) {
     const searchParams = useSearchParams();
     const cityFromQuery = searchParams.get('city') || "";
 
     const [filters, setFilters] = useState({
         city: cityFromQuery,
         minPrice: 0,
-        maxPrice: 500000,
+        maxPrice: 1000000,
         type: undefined as string | undefined,
         bedrooms: undefined as number | undefined,
     });
+
+    const cities = [
+        "Yaoundé",
+        "Douala",
+        "Bafoussam",
+        "Bamenda",
+        "Garoua",
+        "Maroua",
+        "Ngaoundéré",
+        "Bertoua",
+        "Buea",
+        "Limbe",
+    ];
 
     const [filteredProperties, setFilteredProperties] = useState<Property[]>(initialProperties);
 
@@ -44,6 +58,11 @@ export default function SearchContent({ initialProperties }: SearchContentProps)
         // Filter by bedrooms
         if (filters.bedrooms) {
             results = results.filter(p => p.bedrooms >= filters.bedrooms!);
+        }
+
+        // Filter by type
+        if (filters.type) {
+            results = results.filter(p => p.type === filters.type);
         }
 
         // Filter by availability
@@ -79,13 +98,33 @@ export default function SearchContent({ initialProperties }: SearchContentProps)
                             {/* City Filter */}
                             <div className="space-y-3">
                                 <label className="text-sm font-semibold text-slate-700">Ville</label>
-                                <input
-                                    type="text"
-                                    placeholder="Ex: Yaoundé, Douala..."
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all"
+                                <select
+                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-medium"
                                     value={filters.city}
                                     onChange={(e) => handleFilterChange({ city: e.target.value })}
-                                />
+                                >
+                                    <option value="">Toutes les villes</option>
+                                    {cities.map(city => (
+                                        <option key={city} value={city}>{city}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Property Type Filter */}
+                            <div className="space-y-3">
+                                <label className="text-sm font-semibold text-slate-700">Type de logement</label>
+                                <select
+                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all"
+                                    value={filters.type || ""}
+                                    onChange={(e) => handleFilterChange({ type: e.target.value || undefined })}
+                                >
+                                    <option value="">Tous les types</option>
+                                    <option value="studio">Studio</option>
+                                    <option value="t2">T2 (2 pièces)</option>
+                                    <option value="t3">T3 (3 pièces)</option>
+                                    <option value="t4">T4+ (4 pièces ou plus)</option>
+                                    <option value="chambre">Chambre</option>
+                                </select>
                             </div>
 
                             {/* Price Range */}
@@ -98,8 +137,8 @@ export default function SearchContent({ initialProperties }: SearchContentProps)
                                 <input
                                     type="range"
                                     min="10000"
-                                    max="500000"
-                                    step="5000"
+                                    max="1000000"
+                                    step="10000"
                                     className="w-full accent-brand-primary h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
                                     value={filters.maxPrice}
                                     onChange={(e) => handleFilterChange({ maxPrice: parseInt(e.target.value) })}
@@ -129,7 +168,7 @@ export default function SearchContent({ initialProperties }: SearchContentProps)
                                 variant="outline"
                                 fullWidth
                                 className="text-xs font-bold py-3 uppercase tracking-wider mt-6"
-                                onClick={() => handleFilterChange({ city: '', minPrice: 0, maxPrice: 500000, bedrooms: undefined })}
+                                onClick={() => handleFilterChange({ city: '', minPrice: 0, maxPrice: 1000000, bedrooms: undefined, type: undefined })}
                             >
                                 Réinitialiser
                             </Button>
@@ -147,7 +186,11 @@ export default function SearchContent({ initialProperties }: SearchContentProps)
                                     className="animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-backwards"
                                     style={{ animationDelay: `${index * 100}ms` }}
                                 >
-                                    <PropertyCard property={property} />
+                                    <PropertyCard
+                                        property={property}
+                                        currentUser={currentUser}
+                                        isInitialFavorited={false} // We can refine this later by checking if property.id is in a favorites list
+                                    />
                                 </div>
                             ))}
                         </div>
@@ -163,7 +206,7 @@ export default function SearchContent({ initialProperties }: SearchContentProps)
                             <Button
                                 variant="primary"
                                 className="px-8 py-4 rounded-2xl font-bold"
-                                onClick={() => handleFilterChange({ city: '', minPrice: 0, maxPrice: 500000, bedrooms: undefined })}
+                                onClick={() => handleFilterChange({ city: '', minPrice: 0, maxPrice: 1000000, bedrooms: undefined })}
                             >
                                 Réinitialiser les filtres
                             </Button>
